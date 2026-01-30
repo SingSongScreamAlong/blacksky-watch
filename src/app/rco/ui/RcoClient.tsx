@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { connectWs, type WsEnvelope } from "@/lib/wsClient";
 import HelpOverlay, { useFirstRunHelp } from "@/lib/helpOverlay";
+import { useToast } from "@/lib/useToast";
 
 type IncidentArc = "EAST" | "WEST" | "NORTH" | "SOUTH" | "EXTERNAL";
 
@@ -62,6 +63,7 @@ type Leaderboard = {
 type Bootstrap = {
   region: Region;
   incidents: Incident[];
+  tasks?: Task[];
   comms: Comms[];
   aar: { ts: number; type: string; summary: string; incidentId?: string }[];
   leaderboard: Leaderboard;
@@ -69,6 +71,18 @@ type Bootstrap = {
 
 type PosturePayload = { posture: Region["posture"] };
 type AarPayload = { ts: number; type: string; summary: string; incidentId?: string };
+
+type Task = {
+  id: string;
+  incidentId: string;
+  outpostCode: string;
+  createdAt: number;
+  ackedAt?: number;
+  completedAt?: number;
+  status: "OPEN" | "ACKED" | "COMPLETED";
+  text: string;
+  report?: { ts: number; text: string };
+};
 
 function confidenceBand(inc: Incident): string {
   if (inc.verification.confidence >= 0.72) return "CONFIRMED";
@@ -100,6 +114,10 @@ export default function RcoClient({ regionId }: { regionId: string }) {
   const [now, setNow] = useState<number>(() => nowMs());
 
   const help = useFirstRunHelp("blacksky_help_rco_v1");
+  const toastApi = useToast();
+  const showToast = toastApi.show;
+
+  const [busy, setBusy] = useState<string | null>(null);
 
   const wsRef = useRef<ReturnType<typeof connectWs> | null>(null);
 
@@ -113,6 +131,12 @@ export default function RcoClient({ regionId }: { regionId: string }) {
     if (!selectedId) return sortedIncidents[0] ?? null;
     return sortedIncidents.find((i) => i.id === selectedId) ?? sortedIncidents[0] ?? null;
   }, [selectedId, sortedIncidents]);
+
+  const selectedTasks = useMemo(() => {
+    const tasks = boot?.tasks ?? [];
+    if (!selected) return [];
+    return tasks.filter((t) => t.incidentId === selected.id).slice(0, 5);
+  }, [boot?.tasks, selected]);
 
   useEffect(() => {
     if (!regionId) return;
@@ -177,6 +201,17 @@ export default function RcoClient({ regionId }: { regionId: string }) {
         return { ...prev, aar: [...prev.aar.slice(-49), env.payload as AarPayload] };
       }
 
+      if (env.type === "task/open") {
+        const task = env.payload as Task;
+        return { ...prev, tasks: [task, ...(prev.tasks ?? [])] };
+      }
+
+      if (env.type === "task/update") {
+        const task = env.payload as Task;
+        const tasks = prev.tasks ?? [];
+        return { ...prev, tasks: tasks.map((t) => (t.id === task.id ? task : t)) };
+      }
+
       return prev;
     });
   }, []);
@@ -198,41 +233,72 @@ export default function RcoClient({ regionId }: { regionId: string }) {
   }, [applyEnvelope, regionId]);
 
   const postAction = useCallback(async (body: unknown) => {
-    await fetch(`/api/rco/action`, {
+    const res = await fetch(`/api/rco/action`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(txt || `HTTP ${res.status}`);
+    }
   }, []);
 
   const ackOrAssign = useCallback(async () => {
     if (!selected) return;
 
-    if (!selected.acknowledgedAt) {
-      await postAction({ regionId, type: "ACK", incidentId: selected.id });
-      return;
-    }
+    const op = !selected.acknowledgedAt ? "ACK" : "ASSIGN";
+    setBusy(op);
+    try {
+      if (!selected.acknowledgedAt) {
+        await postAction({ regionId, type: "ACK", incidentId: selected.id });
+        showToast("ok", "ACK sent");
+        return;
+      }
 
-    const outpost = selected.assignedTo ?? "860";
-    await postAction({
-      regionId,
-      type: "ASSIGN",
-      incidentId: selected.id,
-      outpostCode: outpost,
-      taskText: taskText || undefined,
-    });
-  }, [postAction, regionId, selected, taskText]);
+      const outpost = selected.assignedTo ?? "860";
+      await postAction({
+        regionId,
+        type: "ASSIGN",
+        incidentId: selected.id,
+        outpostCode: outpost,
+        taskText: taskText || undefined,
+      });
+
+      showToast("ok", `Assigned to ${outpost}`);
+    } catch (err) {
+      showToast("err", err instanceof Error ? err.message : "Action failed");
+    } finally {
+      setBusy(null);
+    }
+  }, [postAction, regionId, selected, showToast, taskText]);
 
   const requestXcheck = useCallback(async () => {
     if (!selected) return;
-    await postAction({ regionId, type: "XCHECK", incidentId: selected.id });
-  }, [postAction, regionId, selected]);
+    setBusy("XCHECK");
+    try {
+      await postAction({ regionId, type: "XCHECK", incidentId: selected.id });
+      showToast("info", "XCHECK requested");
+    } catch (err) {
+      showToast("err", err instanceof Error ? err.message : "XCHECK failed");
+    } finally {
+      setBusy(null);
+    }
+  }, [postAction, regionId, selected, showToast]);
 
   const setPosture = useCallback(
     async (posture: Region["posture"]) => {
-      await postAction({ regionId, type: "POSTURE", posture });
+      setBusy(`POSTURE:${posture}`);
+      try {
+        await postAction({ regionId, type: "POSTURE", posture });
+        showToast("ok", `Posture ${posture}`);
+      } catch (err) {
+        showToast("err", err instanceof Error ? err.message : "Posture failed");
+      } finally {
+        setBusy(null);
+      }
     },
-    [postAction, regionId]
+    [postAction, regionId, showToast]
   );
 
   const sendTemplate = useCallback(
@@ -248,15 +314,23 @@ export default function RcoClient({ regionId }: { regionId: string }) {
       };
 
       setTaskText(templates[n] ?? "");
-      await postAction({
-        regionId,
-        type: "ASSIGN",
-        incidentId: selected.id,
-        outpostCode: selected.assignedTo ?? "860",
-        taskText: templates[n],
-      });
+      setBusy("ASSIGN");
+      try {
+        await postAction({
+          regionId,
+          type: "ASSIGN",
+          incidentId: selected.id,
+          outpostCode: selected.assignedTo ?? "860",
+          taskText: templates[n],
+        });
+        showToast("ok", "Template sent");
+      } catch (err) {
+        showToast("err", err instanceof Error ? err.message : "Assign failed");
+      } finally {
+        setBusy(null);
+      }
     },
-    [postAction, regionId, selected]
+    [postAction, regionId, selected, showToast]
   );
 
   async function director(kind: "phantom" | "spoof") {
@@ -335,6 +409,12 @@ export default function RcoClient({ regionId }: { regionId: string }) {
 
   return (
     <div className="page">
+      {toastApi.toast ? (
+        <div className={`toast ${toastApi.toast.kind}`}>
+          <span className="toastTag mono">{toastApi.toast.kind.toUpperCase()}</span>
+          <span className="mono">{toastApi.toast.msg}</span>
+        </div>
+      ) : null}
       <HelpOverlay
         storageKey="blacksky_help_rco_v1"
         title="What is RCO?"
@@ -499,9 +579,29 @@ export default function RcoClient({ regionId }: { regionId: string }) {
               </div>
 
               <div className="row gap">
-                <button className="btn" onClick={ackOrAssign}>{selected.acknowledgedAt ? "Assign" : "ACK"}</button>
-                <button className="btn" onClick={requestXcheck}>XCHECK</button>
-                <button className="btn" onClick={() => postAction({ regionId, type: "RESOLVE", incidentId: selected.id })}>Resolve</button>
+                <button className="btn" disabled={!!busy} onClick={ackOrAssign}>
+                  {busy ? "…" : selected.acknowledgedAt ? "Assign" : "ACK"}
+                </button>
+                <button className="btn" disabled={!!busy} onClick={requestXcheck}>
+                  {busy === "XCHECK" ? "…" : "XCHECK"}
+                </button>
+                <button
+                  className="btn"
+                  disabled={!!busy}
+                  onClick={async () => {
+                    setBusy("RESOLVE");
+                    try {
+                      await postAction({ regionId, type: "RESOLVE", incidentId: selected.id });
+                      showToast("ok", "Resolved");
+                    } catch (err) {
+                      showToast("err", err instanceof Error ? err.message : "Resolve failed");
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  {busy === "RESOLVE" ? "…" : "Resolve"}
+                </button>
               </div>
 
               <div className="panelSubTitle">Task Composer</div>
@@ -513,9 +613,29 @@ export default function RcoClient({ regionId }: { regionId: string }) {
               />
 
               <div className="row gap">
-                <button className="btn" onClick={() => setPosture("OPEN")}>OPEN</button>
-                <button className="btn" onClick={() => setPosture("GUIDED")}>GUIDED</button>
-                <button className="btn" onClick={() => setPosture("CONTROLLED")}>CONTROLLED</button>
+                <button className="btn" disabled={!!busy} onClick={() => setPosture("OPEN")}>OPEN</button>
+                <button className="btn" disabled={!!busy} onClick={() => setPosture("GUIDED")}>GUIDED</button>
+                <button className="btn" disabled={!!busy} onClick={() => setPosture("CONTROLLED")}>CONTROLLED</button>
+              </div>
+
+              <div className="panelSubTitle">Tasks</div>
+              <div className="list">
+                {selectedTasks.length ? (
+                  selectedTasks.map((t) => (
+                    <div key={t.id} className="listItemStatic">
+                      <div className="row">
+                        <div className="sev">{t.status}</div>
+                        <div className="mono muted">→ {t.outpostCode}</div>
+                        <div className="spacer" />
+                        <div className="muted mono">{t.id.slice(0, 8)}</div>
+                      </div>
+                      <div className="tight">{t.text}</div>
+                      {t.report ? <div className="muted tight">Report: {t.report.text}</div> : null}
+                    </div>
+                  ))
+                ) : (
+                  <div className="muted">No tasks yet. Assign will create one.</div>
+                )}
               </div>
 
               <div className="panelSubTitle">Leaderboard (session)</div>

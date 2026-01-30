@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { connectWs, type WsEnvelope } from "@/lib/wsClient";
 import HelpOverlay, { useFirstRunHelp } from "@/lib/helpOverlay";
+import { useToast } from "@/lib/useToast";
 
 type IncidentArc = "EAST" | "WEST" | "NORTH" | "SOUTH" | "EXTERNAL";
 
@@ -58,6 +59,10 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
   const [boot, setBoot] = useState<Bootstrap | null>(null);
   const [line, setLine] = useState<string>("");
   const [terminal, setTerminal] = useState<string[]>([]);
+
+  const toast = useToast();
+  const [busy, setBusy] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const help = useFirstRunHelp("blacksky_help_outpost_v1");
 
@@ -167,12 +172,39 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
     setLine("");
     setTerminal((prev) => [...prev, `> ${toSend}`]);
 
-    await fetch(`/api/terminal/line`, {
+    const res = await fetch(`/api/terminal/line`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ regionId, outpostCode, line: toSend }),
     });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      toast.show("err", txt || `HTTP ${res.status}`);
+    }
   }
+
+  const runCmd = useCallback(
+    async (cmd: string) => {
+      setBusy(cmd.split(" ")[0] ?? "cmd");
+      try {
+        const res = await fetch(`/api/terminal/line`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ regionId, outpostCode, line: cmd }),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(txt || `HTTP ${res.status}`);
+        }
+        toast.show("ok", cmd);
+      } catch (err) {
+        toast.show("err", err instanceof Error ? err.message : "Command failed");
+      } finally {
+        setBusy(null);
+      }
+    },
+    [outpostCode, regionId, toast]
+  );
 
   if (!regionId || !outpostCode) {
     return (
@@ -198,6 +230,12 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
 
   return (
     <div className="page">
+      {toast.toast ? (
+        <div className={`toast ${toast.toast.kind}`}>
+          <span className="toastTag mono">{toast.toast.kind.toUpperCase()}</span>
+          <span className="mono">{toast.toast.msg}</span>
+        </div>
+      ) : null}
       <HelpOverlay
         storageKey="blacksky_help_outpost_v1"
         title="What is an Outpost?"
@@ -251,6 +289,9 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
           <div className="row gap">
             <input
               className="input"
+              ref={(el) => {
+                inputRef.current = el;
+              }}
               value={line}
               onChange={(e) => setLine(e.target.value)}
               onKeyDown={(e) => {
@@ -287,7 +328,33 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
                     <div className="muted mono">{t.id.slice(0, 8)}</div>
                   </div>
                   <div className="tight">{t.text}</div>
-                  <div className="muted tight mono">/ack {t.id} · /report {t.id} ... · /complete {t.id}</div>
+                  {t.report ? <div className="muted tight">Last report: {t.report.text}</div> : null}
+                  <div className="row gap" style={{ marginTop: 8 }}>
+                    <button
+                      className="btn btnSmall"
+                      disabled={!!busy}
+                      onClick={() => runCmd(`/ack ${t.id}`)}
+                    >
+                      ACK
+                    </button>
+                    <button
+                      className="btn btnSmall"
+                      disabled={!!busy}
+                      onClick={() => {
+                        setLine(`/report ${t.id} `);
+                        window.setTimeout(() => inputRef.current?.focus(), 0);
+                      }}
+                    >
+                      REPORT
+                    </button>
+                    <button
+                      className="btn btnSmall"
+                      disabled={!!busy}
+                      onClick={() => runCmd(`/complete ${t.id}`)}
+                    >
+                      COMPLETE
+                    </button>
+                  </div>
                 </div>
               ))
             ) : (

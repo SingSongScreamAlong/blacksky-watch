@@ -484,6 +484,55 @@ a {
   border-top: 1px solid var(--line);
 }
 
+.toast {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 60;
+  border: 1px solid var(--line2);
+  background: rgba(7, 10, 13, 0.85);
+  color: var(--fg0);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 240px;
+  max-width: min(520px, calc(100vw - 28px));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.toast.ok {
+  border-color: rgba(92, 255, 154, 0.35);
+}
+
+.toast.err {
+  border-color: rgba(255, 92, 92, 0.35);
+}
+
+.toast.info {
+  border-color: rgba(88, 166, 255, 0.35);
+}
+
+.toastTag {
+  font-size: 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: var(--fg1);
+}
+
+.btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btnSmall {
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
