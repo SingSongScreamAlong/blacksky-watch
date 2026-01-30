@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RcoClient from "@/app/rco/ui/RcoClient";
 import OutpostClient from "@/app/outpost/ui/OutpostClient";
-import { connectWs, type WsEnvelope } from "@/lib/wsClient";
+import { connectWs, type WsEnvelope, type WsStatus } from "@/lib/wsClient";
 
 type OpsTab = "RCO" | "OUTPOST_A" | "OUTPOST_B";
 
@@ -45,10 +45,16 @@ export default function OpsClient({ regionId }: { regionId: string }) {
   const [unreadA, setUnreadA] = useState<boolean>(false);
   const [unreadB, setUnreadB] = useState<boolean>(false);
 
+  const [wsStatus, setWsStatus] = useState<WsStatus>("connecting");
+  const [lastEventAt, setLastEventAt] = useState<number>(() => Date.now());
+  const [now, setNow] = useState<number>(() => Date.now());
+
   const wsRef = useRef<ReturnType<typeof connectWs> | null>(null);
 
   const applyEnvelope = useCallback(
     (env: WsEnvelope) => {
+      setLastEventAt(Date.now());
+
       // Unread should reflect activity for the *current* A/B assignments.
       if (env.type === "task/open") {
         const payload = env.payload as { outpostCode?: string };
@@ -81,6 +87,7 @@ export default function OpsClient({ regionId }: { regionId: string }) {
     wsRef.current = connectWs({
       rooms: [`region:${regionId}`, `comms:${regionId}`, `session:${regionId}`],
       onEnvelope: applyEnvelope,
+      onStatus: setWsStatus,
     });
 
     return () => {
@@ -88,6 +95,11 @@ export default function OpsClient({ regionId }: { regionId: string }) {
       wsRef.current = null;
     };
   }, [applyEnvelope, regionId]);
+
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(t);
+  }, []);
 
   useEffect(() => {
     try {
@@ -116,12 +128,18 @@ export default function OpsClient({ regionId }: { regionId: string }) {
   const popB = `/outpost?regionId=${encodeURIComponent(regionId)}&outpostCode=${encodeURIComponent(outpostB)}`;
 
   const activeTitle = tab === "RCO" ? "RCO" : tab === "OUTPOST_A" ? `OUTPOST A · ${outpostA}` : `OUTPOST B · ${outpostB}`;
+  const sinceMs = Math.max(0, now - lastEventAt);
+  const sinceS = Math.floor(sinceMs / 1000);
 
   return (
     <div className="page">
       <div className="topbar">
         <div className="h1">OPS · {regionId}</div>
         <div className="chips">
+          <span className={`chip ${wsStatus === "live" ? "chip-live" : wsStatus === "offline" ? "chip-offline" : "chip-reconnecting"}`}>
+            {wsStatus === "live" ? "LIVE" : wsStatus === "offline" ? "OFFLINE" : "RECONNECTING"}
+          </span>
+          <span className="chip mono">LAST: {sinceS}s</span>
           <span className="chip mono">OUTPOST A</span>
           <select
             className="select"
