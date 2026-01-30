@@ -559,6 +559,35 @@ a {
   background: rgba(0, 0, 0, 0.15);
 }
 
+.opsTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 10, 13, 0.35);
+  margin-bottom: 12px;
+}
+
+.opsTab {
+  border: 1px solid var(--line);
+  background: rgba(7, 10, 13, 0.35);
+  color: var(--fg0);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+.opsTab.active {
+  border-color: rgba(88, 166, 255, 0.45);
+  background: rgba(88, 166, 255, 0.12);
+}
+
+.opsTabBody {
+  display: block;
+}
+
 .opsGrid1 {
   display: grid;
   grid-template-columns: 1fr;

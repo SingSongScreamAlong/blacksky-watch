@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import RcoClient from "@/app/rco/ui/RcoClient";
 import OutpostClient from "@/app/outpost/ui/OutpostClient";
 
-type LayoutMode = "RCO_ONLY" | "RCO_PLUS_1" | "RCO_PLUS_2";
+type OpsTab = "RCO" | "OUTPOST_A" | "OUTPOST_B";
 
 export default function OpsClient({ regionId }: { regionId: string }) {
-  const [mode, setMode] = useState<LayoutMode>("RCO_PLUS_1");
+  const [tab, setTab] = useState<OpsTab>("RCO");
   const [outpostA, setOutpostA] = useState<string>("860");
   const [outpostB, setOutpostB] = useState<string>("401");
 
@@ -28,22 +28,13 @@ export default function OpsClient({ regionId }: { regionId: string }) {
   const popA = `/outpost?regionId=${encodeURIComponent(regionId)}&outpostCode=${encodeURIComponent(outpostA)}`;
   const popB = `/outpost?regionId=${encodeURIComponent(regionId)}&outpostCode=${encodeURIComponent(outpostB)}`;
 
+  const activeTitle = tab === "RCO" ? "RCO" : tab === "OUTPOST_A" ? `OUTPOST A · ${outpostA}` : `OUTPOST B · ${outpostB}`;
+
   return (
     <div className="page">
       <div className="topbar">
         <div className="h1">OPS · {regionId}</div>
         <div className="chips">
-          <span className="chip mono">MODE</span>
-          <button className={`btn btnSmall ${mode === "RCO_ONLY" ? "btnActive" : ""}`} onClick={() => setMode("RCO_ONLY")}>
-            RCO
-          </button>
-          <button className={`btn btnSmall ${mode === "RCO_PLUS_1" ? "btnActive" : ""}`} onClick={() => setMode("RCO_PLUS_1")}>
-            RCO + 1
-          </button>
-          <button className={`btn btnSmall ${mode === "RCO_PLUS_2" ? "btnActive" : ""}`} onClick={() => setMode("RCO_PLUS_2")}>
-            RCO + 2
-          </button>
-
           <span className="chip mono">OUTPOST A</span>
           <select className="select" value={outpostA} onChange={(e) => setOutpostA(e.target.value)}>
             {outpostOptions.map((o) => (
@@ -76,34 +67,31 @@ export default function OpsClient({ regionId }: { regionId: string }) {
         </a>
       </div>
 
-      {mode === "RCO_ONLY" ? (
-        <div className="opsGrid1">
-          <div className="opsPane">
+      <div className="opsTabs">
+        <button className={`opsTab ${tab === "RCO" ? "active" : ""}`} onClick={() => setTab("RCO")}>
+          RCO
+        </button>
+        <button className={`opsTab ${tab === "OUTPOST_A" ? "active" : ""}`} onClick={() => setTab("OUTPOST_A")}>
+          Outpost A · {outpostA}
+        </button>
+        <button className={`opsTab ${tab === "OUTPOST_B" ? "active" : ""}`} onClick={() => setTab("OUTPOST_B")}>
+          Outpost B · {outpostB}
+        </button>
+        <div className="spacer" />
+        <div className="muted mono small">{activeTitle}</div>
+      </div>
+
+      <div className="opsTabBody">
+        <div className="opsPane">
+          {tab === "RCO" ? (
             <RcoClient regionId={regionId} />
-          </div>
-        </div>
-      ) : mode === "RCO_PLUS_1" ? (
-        <div className="opsGrid2">
-          <div className="opsPane">
-            <RcoClient regionId={regionId} />
-          </div>
-          <div className="opsPane">
+          ) : tab === "OUTPOST_A" ? (
             <OutpostClient regionId={regionId} outpostCode={outpostA} />
-          </div>
-        </div>
-      ) : (
-        <div className="opsGrid3">
-          <div className="opsPane">
-            <RcoClient regionId={regionId} />
-          </div>
-          <div className="opsPane">
-            <OutpostClient regionId={regionId} outpostCode={outpostA} />
-          </div>
-          <div className="opsPane">
+          ) : (
             <OutpostClient regionId={regionId} outpostCode={outpostB} />
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
