@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { connectWs, type WsEnvelope } from "@/lib/wsClient";
 import HelpOverlay, { useFirstRunHelp } from "@/lib/helpOverlay";
 
@@ -36,10 +36,23 @@ type Comms = {
 type Bootstrap = {
   region: Region;
   incidents: Incident[];
+  tasks: Task[];
   comms: Comms[];
 };
 
 type PosturePayload = { posture: Region["posture"] };
+
+type Task = {
+  id: string;
+  incidentId: string;
+  outpostCode: string;
+  createdAt: number;
+  ackedAt?: number;
+  completedAt?: number;
+  status: "OPEN" | "ACKED" | "COMPLETED";
+  text: string;
+  report?: { ts: number; text: string };
+};
 
 export default function OutpostClient({ regionId, outpostCode }: { regionId: string; outpostCode: string }) {
   const [boot, setBoot] = useState<Bootstrap | null>(null);
@@ -56,13 +69,13 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
     fetch(`/api/rco/bootstrap?regionId=${encodeURIComponent(regionId)}`)
       .then((r) => r.json())
       .then((data) => {
-        setBoot({ region: data.region, incidents: data.incidents, comms: data.comms });
+        setBoot({ region: data.region, incidents: data.incidents, tasks: data.tasks ?? [], comms: data.comms });
         setTerminal((prev) => [...prev, `CONNECTED region=${regionId} outpost=${outpostCode || "?"}`]);
       })
       .catch(() => setBoot(null));
   }, [regionId, outpostCode]);
 
-  function applyEnvelope(env: WsEnvelope) {
+  const applyEnvelope = useCallback((env: WsEnvelope) => {
     setBoot((prev) => {
       if (!prev) return prev;
 
@@ -78,6 +91,16 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
       if (env.type === "comms/message") {
         const msg = env.payload as Comms;
         return { ...prev, comms: [...prev.comms.slice(-49), msg] };
+      }
+
+      if (env.type === "task/open") {
+        const task = env.payload as Task;
+        return { ...prev, tasks: [task, ...prev.tasks] };
+      }
+
+      if (env.type === "task/update") {
+        const task = env.payload as Task;
+        return { ...prev, tasks: prev.tasks.map((t) => (t.id === task.id ? task : t)) };
       }
 
       if (env.type === "region/update") {
@@ -97,7 +120,14 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
       const msg = env.payload as Comms;
       setTerminal((prev) => [...prev.slice(-200), `${new Date(msg.ts).toLocaleTimeString()} [${msg.from}] ${msg.text}${msg.flagged ? " (FLAG)" : ""}`]);
     }
-  }
+
+    if (env.type === "task/open") {
+      const task = env.payload as Task;
+      if (task.outpostCode === outpostCode) {
+        setTerminal((prev) => [...prev.slice(-200), `TASK ${task.id.slice(0, 8)} assigned: ${task.text}`]);
+      }
+    }
+  }, [outpostCode]);
 
   useEffect(() => {
     if (!regionId) return;
@@ -112,13 +142,21 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [regionId]);
+  }, [applyEnvelope, regionId]);
 
   const assigned = useMemo(() => {
     if (!boot) return [];
     return boot.incidents
       .filter((i) => !i.resolvedAt)
       .filter((i) => i.assignedTo === outpostCode)
+      .slice(0, 10);
+  }, [boot, outpostCode]);
+
+  const myOpenTasks = useMemo(() => {
+    if (!boot) return [];
+    return boot.tasks
+      .filter((t) => t.outpostCode === outpostCode)
+      .filter((t) => t.status !== "COMPLETED")
       .slice(0, 10);
   }, [boot, outpostCode]);
 
@@ -218,7 +256,7 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
               onKeyDown={(e) => {
                 if (e.key === "Enter") submit();
               }}
-              placeholder="Type… (/xcheck <incidentId>, /resolve <incidentId>, /staff off)"
+              placeholder="Type… (/ack <taskId>, /report <taskId> <text>, /complete <taskId>, /staff off)"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -235,7 +273,26 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
             <div className="k">Arc</div>
             <div className="v">N {boot.region.arcMarks.NORTH} · S {boot.region.arcMarks.SOUTH} · E {boot.region.arcMarks.EAST} · W {boot.region.arcMarks.WEST} · X {boot.region.arcMarks.EXTERNAL}</div>
             <div className="k">Alerts</div>
-            <div className="v">Assigned open: {assigned.length}</div>
+            <div className="v">Assigned open: {assigned.length} · Tasks: {myOpenTasks.length}</div>
+          </div>
+
+          <div className="panelSubTitle">Task Inbox</div>
+          <div className="list">
+            {myOpenTasks.length ? (
+              myOpenTasks.map((t) => (
+                <div key={t.id} className="listItemStatic">
+                  <div className="row">
+                    <div className="sev">{t.status}</div>
+                    <div className="spacer" />
+                    <div className="muted mono">{t.id.slice(0, 8)}</div>
+                  </div>
+                  <div className="tight">{t.text}</div>
+                  <div className="muted tight mono">/ack {t.id} · /report {t.id} ... · /complete {t.id}</div>
+                </div>
+              ))
+            ) : (
+              <div className="muted">No tasks.</div>
+            )}
           </div>
 
           <div className="panelSubTitle">Assigned Incidents</div>

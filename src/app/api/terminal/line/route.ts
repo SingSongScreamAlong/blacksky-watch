@@ -48,6 +48,28 @@ export async function POST(req: Request) {
         return Response.json({ ok: true, handled: "resolve" });
       }
 
+      if (cmd === "ack") {
+        const taskId = rest[0];
+        if (!taskId) return Response.json({ ok: false, error: "taskId required" }, { status: 400 });
+        SimService.ackTask(body.regionId, body.outpostCode, taskId);
+        return Response.json({ ok: true, handled: "ack" });
+      }
+
+      if (cmd === "complete") {
+        const taskId = rest[0];
+        if (!taskId) return Response.json({ ok: false, error: "taskId required" }, { status: 400 });
+        SimService.completeTask(body.regionId, body.outpostCode, taskId);
+        return Response.json({ ok: true, handled: "complete" });
+      }
+
+      if (cmd === "report") {
+        const taskId = rest[0];
+        const text = rest.slice(1).join(" ").trim();
+        if (!taskId || !text) return Response.json({ ok: false, error: "taskId and text required" }, { status: 400 });
+        SimService.reportTask(body.regionId, body.outpostCode, taskId, text);
+        return Response.json({ ok: true, handled: "report" });
+      }
+
       return Response.json({ ok: true, handled: "unknown_command" });
     }
 

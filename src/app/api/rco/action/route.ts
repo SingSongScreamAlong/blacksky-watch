@@ -65,10 +65,13 @@ export async function POST(req: Request) {
         assignedTo: body.outpostCode,
       });
 
+      const taskText = body.taskText ?? "Investigate + report";
+      SimService.createTask(body.regionId, body.incidentId, body.outpostCode, taskText);
+
       SimService.pushComms(body.regionId, {
         from: "OPS",
         incidentId: body.incidentId,
-        text: `Tasking ${body.outpostCode}: ${body.taskText ?? "Investigate + report"}`,
+        text: `Tasking ${body.outpostCode}: ${taskText}`,
       });
 
       return Response.json({ ok: true });

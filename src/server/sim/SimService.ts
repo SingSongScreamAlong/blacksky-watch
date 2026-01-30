@@ -58,6 +58,26 @@ export type Incident = {
   };
 };
 
+export type TaskId = string;
+
+export type TaskStatus = "OPEN" | "ACKED" | "COMPLETED";
+
+export type Task = {
+  id: TaskId;
+  regionId: RegionId;
+  incidentId: IncidentId;
+  outpostCode: string;
+  createdAt: number;
+  ackedAt?: number;
+  completedAt?: number;
+  status: TaskStatus;
+  text: string;
+  report?: {
+    ts: number;
+    text: string;
+  };
+};
+
 export type AARLogEntry = {
   ts: number;
   type: string;
@@ -77,6 +97,7 @@ export type RegionState = {
   arcMarks: Record<IncidentArc, ArcMark>;
   whoStaffed: Record<string, boolean>; // outpostCode -> staffed
   incidents: Incident[];
+  tasks: Task[];
   comms: CommsMessage[];
   aar: AARLogEntry[];
   leaderboard: Leaderboard;
@@ -148,6 +169,7 @@ class SimServiceImpl {
         "860": true,
       },
       incidents: [],
+      tasks: [],
       comms: [],
       aar: [],
       leaderboard: {
@@ -193,10 +215,174 @@ class SimServiceImpl {
         session: region.session,
       },
       incidents: region.incidents,
+      tasks: region.tasks,
       comms: region.comms.slice(-50),
       aar: region.aar.slice(-50),
       leaderboard: region.leaderboard,
     };
+  }
+
+  createTask(
+    regionId: RegionId,
+    incidentId: IncidentId,
+    outpostCode: string,
+    text: string
+  ) {
+    const region = this.getRegion(regionId);
+    const incident = region.incidents.find((i) => i.id === incidentId);
+    if (!incident) throw new Error(`Unknown incident: ${incidentId}`);
+
+    const now = Date.now();
+    const task: Task = {
+      id: id("task"),
+      regionId,
+      incidentId,
+      outpostCode,
+      createdAt: now,
+      status: "OPEN",
+      text,
+    };
+
+    region.tasks.unshift(task);
+    if (region.tasks.length > 500) region.tasks.splice(0, region.tasks.length - 500);
+
+    this.pushAar(region, {
+      ts: now,
+      type: "TASK_OPEN",
+      summary: `Tasking ${outpostCode} on ${incident.arc} ${incident.what}`,
+      incidentId,
+    });
+
+    this.broadcast(regionId, {
+      type: "task/open",
+      ts: now,
+      payload: task,
+    });
+
+    return task;
+  }
+
+  ackTask(regionId: RegionId, outpostCode: string, taskId: TaskId) {
+    const region = this.getRegion(regionId);
+    const task = region.tasks.find((t) => t.id === taskId);
+    if (!task) throw new Error(`Unknown task: ${taskId}`);
+    if (task.outpostCode !== outpostCode) throw new Error("Task outpost mismatch");
+
+    if (task.ackedAt) return task;
+
+    const now = Date.now();
+    task.ackedAt = now;
+    task.status = "ACKED";
+
+    const ackMs = now - task.createdAt;
+    const oldAvg = region.leaderboard.ackAvgMs || 0;
+    const samples = Math.max(1, region.leaderboard.xchecks + 1);
+    region.leaderboard.ackAvgMs = Math.round(oldAvg * (1 - 1 / samples) + ackMs * (1 / samples));
+    region.leaderboard.discipline += 1;
+
+    this.pushAar(region, {
+      ts: now,
+      type: "TASK_ACK",
+      summary: `${outpostCode} ACK task ${taskId.slice(0, 6)}`,
+      incidentId: task.incidentId,
+    });
+
+    this.broadcast(regionId, {
+      type: "task/update",
+      ts: now,
+      payload: task,
+    });
+
+    return task;
+  }
+
+  reportTask(regionId: RegionId, outpostCode: string, taskId: TaskId, text: string) {
+    const region = this.getRegion(regionId);
+    const task = region.tasks.find((t) => t.id === taskId);
+    if (!task) throw new Error(`Unknown task: ${taskId}`);
+    if (task.outpostCode !== outpostCode) throw new Error("Task outpost mismatch");
+
+    const now = Date.now();
+    task.report = { ts: now, text };
+
+    const incident = region.incidents.find((i) => i.id === task.incidentId);
+    if (incident && !incident.resolvedAt) {
+      // If a report arrives, slightly boost confidence (unless it's a phantom).
+      const boost = incident.verification.phantom ? -0.04 : 0.08;
+      incident.verification.confidence = clamp01(incident.verification.confidence + boost);
+      incident.verification.suspicion = clamp01(incident.verification.suspicion + (incident.verification.phantom ? 0.06 : -0.03));
+      incident.lastUpdateAt = now;
+
+      this.broadcast(regionId, {
+        type: "incident/update",
+        ts: now,
+        payload: incident,
+      });
+    }
+
+    this.pushComms(regionId, {
+      from: outpostCode,
+      incidentId: task.incidentId,
+      text: `REPORT ${taskId.slice(0, 6)}: ${text}`,
+    });
+
+    this.pushAar(region, {
+      ts: now,
+      type: "TASK_REPORT",
+      summary: `${outpostCode} report on ${taskId.slice(0, 6)}`,
+      incidentId: task.incidentId,
+    });
+
+    this.broadcast(regionId, {
+      type: "task/update",
+      ts: now,
+      payload: task,
+    });
+
+    return task;
+  }
+
+  completeTask(regionId: RegionId, outpostCode: string, taskId: TaskId) {
+    const region = this.getRegion(regionId);
+    const task = region.tasks.find((t) => t.id === taskId);
+    if (!task) throw new Error(`Unknown task: ${taskId}`);
+    if (task.outpostCode !== outpostCode) throw new Error("Task outpost mismatch");
+
+    if (task.completedAt) return task;
+
+    const now = Date.now();
+    task.completedAt = now;
+    task.status = "COMPLETED";
+
+    const incident = region.incidents.find((i) => i.id === task.incidentId);
+    if (incident && !incident.resolvedAt) {
+      incident.verification.confidence = clamp01(incident.verification.confidence + 0.06);
+      incident.verification.suspicion = clamp01(incident.verification.suspicion - 0.03);
+      incident.lastUpdateAt = now;
+
+      this.broadcast(regionId, {
+        type: "incident/update",
+        ts: now,
+        payload: incident,
+      });
+    }
+
+    region.leaderboard.discipline += 2;
+
+    this.pushAar(region, {
+      ts: now,
+      type: "TASK_COMPLETE",
+      summary: `${outpostCode} completed task ${taskId.slice(0, 6)}`,
+      incidentId: task.incidentId,
+    });
+
+    this.broadcast(regionId, {
+      type: "task/update",
+      ts: now,
+      payload: task,
+    });
+
+    return task;
   }
 
   openIncident(
