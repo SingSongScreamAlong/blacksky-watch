@@ -19,6 +19,7 @@ export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
 
   const [intent, setIntent] = useState<"confirm" | "observe" | "nojoy" | "id">("confirm");
   const [reportStyle, setReportStyle] = useState<"minimal" | "salute" | "nojoy">("minimal");
+  const [taskId, setTaskId] = useState<string>("");
 
   const copy = useCallback(
     async (t: string) => {
@@ -66,9 +67,14 @@ export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
       reportText = "L=..., T=..., OBS=..., MOV=..., CNT=...";
     }
 
-    const reportCmd = `/report <taskId> ${reportText.replace(/\n/g, " ")}`;
-    return { taskText, reportText, reportCmd };
-  }, [intent, reportStyle]);
+    const id = taskId.trim() || "<taskId>";
+
+    const reportCmd = `/report ${id} ${reportText.replace(/\n/g, " ")}`;
+    const ackCmd = `/ack ${id}`;
+    const completeCmd = `/complete ${id}`;
+
+    return { taskText, reportText, reportCmd, ackCmd, completeCmd };
+  }, [intent, reportStyle, taskId]);
 
   return (
     <div style={{ marginTop: 16 }}>
@@ -96,7 +102,7 @@ export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 16 }}>
+      <div id="task-generator" style={{ marginTop: 16 }}>
         <div className="panelTitle">Task Generator</div>
         <div className="row gap" style={{ flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
           <div className="mono muted">Intent</div>
@@ -119,6 +125,17 @@ export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
             <option value="salute">SALUTE</option>
             <option value="nojoy">NOJOY</option>
           </select>
+
+          <div className="mono muted" style={{ marginLeft: 8 }}>
+            Task ID
+          </div>
+          <input
+            className="input"
+            value={taskId}
+            onChange={(e) => setTaskId(e.target.value)}
+            placeholder="task_..."
+            style={{ width: 180 }}
+          />
         </div>
 
         <div className="grid2" style={{ marginTop: 10 }}>
@@ -145,6 +162,12 @@ export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
               </button>
               <button className="btn btnSmall" onClick={() => copy(generated.reportCmd)}>
                 Copy /report
+              </button>
+              <button className="btn btnSmall" onClick={() => copy(generated.ackCmd)}>
+                Copy /ack
+              </button>
+              <button className="btn btnSmall" onClick={() => copy(generated.completeCmd)}>
+                Copy /complete
               </button>
             </div>
           </div>

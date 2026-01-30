@@ -75,7 +75,7 @@ export default function ManualPage() {
           </div>
           <div className="chips">
             <span className="chip mono">DOC</span>
-            <span className="chip mono">v0.6</span>
+            <span className="chip mono">v0.7</span>
           </div>
         </div>
 
@@ -84,39 +84,39 @@ export default function ManualPage() {
         <div style={{ marginTop: 14 }}>
           <div className="panelTitle">Table of Contents</div>
           <div className="mono">
-            - Quick Start
+            <a href="#quick-start">- Quick Start</a>
             <br />
-            - Normal Ops Flow
+            <a href="#ops-flow">- Normal Ops Flow</a>
             <br />
-            - Task Generator
+            <a href="#task-generator">- Task Generator</a>
             <br />
-            - SOG-01 Initial Contact
+            <a href="#sog-01">- SOG-01 Initial Contact</a>
             <br />
-            - SOG-02 Tasking
+            <a href="#sog-02">- SOG-02 Tasking</a>
             <br />
-            - SOG-03 Outpost Responses
+            <a href="#sog-03">- SOG-03 Outpost Responses</a>
             <br />
-            - SOG-04 Phantom / Uncertainty Handling
+            <a href="#sog-04">- SOG-04 Phantom / Uncertainty Handling</a>
             <br />
-            - SOG-05 Comms Posture
+            <a href="#sog-05">- SOG-05 Comms Posture</a>
             <br />
-            - Playbooks
+            <a href="#playbooks">- Playbooks</a>
             <br />
-            - Report Templates
+            <a href="#report-templates">- Report Templates</a>
             <br />
-            - Emergency Procedures
+            <a href="#emergency-procedures">- Emergency Procedures</a>
             <br />
-            - If You See This → Do This
+            <a href="#if-you-see">- If You See This → Do This</a>
             <br />
-            - Checklists
+            <a href="#checklists">- Checklists</a>
             <br />
-            - Troubleshooting
+            <a href="#troubleshooting">- Troubleshooting</a>
             <br />
-            - Reference (Hotkeys)
+            <a href="#reference">- Reference (Hotkeys)</a>
           </div>
         </div>
 
-        <div style={{ marginTop: 14 }}>
+        <div id="quick-start" style={{ marginTop: 14 }}>
           <div className="panelTitle">Quick Start (60 seconds)</div>
           <div className="mono">
             1) Select incident (J/K)
@@ -131,7 +131,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="ops-flow" style={{ marginTop: 16 }}>
           <div className="panelTitle">Normal Ops Flow (the loop)</div>
           <div className="mono">
             1) Detect: new incident appears
@@ -146,7 +146,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="sog-01" style={{ marginTop: 16 }}>
           <div className="panelTitle">SOG-01: Initial Contact (New Incident)</div>
           <div className="kv">
             <div className="k">Objective</div>
@@ -163,7 +163,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="sog-02" style={{ marginTop: 16 }}>
           <div className="panelTitle">SOG-02: Tasking (ASSIGN)</div>
           <div className="mono">
             Default task text:
@@ -182,7 +182,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="sog-03" style={{ marginTop: 16 }}>
           <div className="panelTitle">SOG-03: Outpost Responses (Terminal)</div>
           <div className="mono">
             /ack &lt;taskId&gt;
@@ -201,7 +201,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="sog-04" style={{ marginTop: 16 }}>
           <div className="panelTitle">SOG-04: Phantom / Uncertainty Handling</div>
           <div className="kv">
             <div className="k">Objective</div>
@@ -220,7 +220,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="sog-05" style={{ marginTop: 16 }}>
           <div className="panelTitle">SOG-05: Comms Posture</div>
           <div className="kv">
             <div className="k">Objective</div>
@@ -237,7 +237,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="playbooks" style={{ marginTop: 16 }}>
           <div className="panelTitle">Playbooks (procedures by situation)</div>
           <div className="list">
             <div className="listItemStatic">
@@ -292,7 +292,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="report-templates" style={{ marginTop: 16 }}>
           <div className="panelTitle">Report Templates (copy/paste)</div>
           <div className="mono">
             SALUTE:
@@ -321,7 +321,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="emergency-procedures" style={{ marginTop: 16 }}>
           <div className="panelTitle">Emergency Procedures</div>
           <div className="list">
             <div className="listItemStatic">
@@ -374,7 +374,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="if-you-see" style={{ marginTop: 16 }}>
           <div className="panelTitle">If You See This → Do This</div>
           <div className="list">
             <div className="listItemStatic">
@@ -431,7 +431,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="checklists" style={{ marginTop: 16 }}>
           <div className="panelTitle">Checklists (Print Mental Version)</div>
           <div className="grid2">
             <div className="panel">
@@ -477,7 +477,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="troubleshooting" style={{ marginTop: 16 }}>
           <div className="panelTitle">Troubleshooting (If you see this → do this)</div>
           <div className="list">
             <div className="listItemStatic">
@@ -534,7 +534,7 @@ export default function ManualPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div id="reference" style={{ marginTop: 16 }}>
           <div className="panelTitle">Reference: Hotkeys</div>
           <div className="mono">
             RCO: J/K select · Enter ACK/Assign · X XCHECK · 1–5 templates · Shift+1–3 posture
