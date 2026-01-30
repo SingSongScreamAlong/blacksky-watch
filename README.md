@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# blacksky-watch (vertical slice)
 
-## Getting Started
+Runnable browser-game vertical slice for a real-time ops / race-control game inspired by *Radio Commander*.
 
-First, run the development server:
+## Requirements
+
+- Node.js 20+
+- npm
+
+## Install
+
+```bash
+npm install
+```
+
+## Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This starts a custom Next.js dev server (see `server.ts`) which also hosts a WebSocket endpoint at `ws://localhost:3000/ws`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Pages
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `http://localhost:3000/rco?regionId=glasslands-01`
+- `http://localhost:3000/outpost?regionId=glasslands-01&outpostCode=860`
 
-## Learn More
+Seed data:
 
-To learn more about Next.js, take a look at the following resources:
+- Region: `glasslands-01`
+- Outposts: `401`, `860`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## WebSockets
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+WebSocket endpoint:
 
-## Deploy on Vercel
+- `GET ws://localhost:3000/ws`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Room subscriptions:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `region:{regionId}`
+- `comms:{regionId}`
+- `session:{regionId}`
+
+Client messages:
+
+```json
+{ "type": "sub", "room": "region:glasslands-01" }
+```
+
+Broadcast envelope format:
+
+```json
+{ "type": "incident/update", "ts": 1730000000000, "payload": { "...": "..." } }
+```
+
+## API routes
+
+- `GET /api/rco/bootstrap?regionId=...`
+- `POST /api/rco/action`
+- `POST /api/terminal/line`
+
+## How to test (two windows)
+
+1. Open **RCO**:
+
+   - `http://localhost:3000/rco?regionId=glasslands-01`
+
+2. Open **Outpost** in another window:
+
+   - `http://localhost:3000/outpost?regionId=glasslands-01&outpostCode=860`
+
+3. Watch live updates:
+
+- Incidents and comms should update in real time.
+- Use RCO hotkeys:
+  - `J` / `K`: next/previous incident
+  - `Enter`: ACK / Assign
+  - `X`: request XCHECK
+  - `1`–`5`: send task templates
+  - `Shift+1`–`3`: posture presets
+
+4. Use Outpost terminal:
+
+- Type a normal line to send comms.
+- Commands:
+  - `/xcheck <incidentId>`
+  - `/resolve <incidentId>`
+  - `/staff off` (or `/staff on`)
+
+## Dev-only director controls
+
+In development only (`NODE_ENV=development`), you can trigger special events:
+
+- Endpoint:
+  - `POST /api/rco/director` with body `{ "regionId": "glasslands-01", "kind": "phantom" | "spoof" }`
+
+- UI:
+  - Buttons on `/rco` labeled `DEV: phantom` and `DEV: spoof`
+
+## Notes
+
+- No database. The simulation is an in-memory singleton: `src/server/sim/SimService.ts`.
+- WebSocket hub + rooms: `src/server/ws/WsHub.ts`.
