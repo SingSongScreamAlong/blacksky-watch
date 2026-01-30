@@ -8,7 +8,12 @@ type Template = {
   text: string;
 };
 
-export default function ManualClient({ templates }: { templates: Template[] }) {
+type TemplateGroup = {
+  title: string;
+  templates: Template[];
+};
+
+export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
   const toastApi = useToast(1800);
   const showToast = toastApi.show;
 
@@ -65,21 +70,26 @@ export default function ManualClient({ templates }: { templates: Template[] }) {
 
       <div style={{ marginTop: 16 }}>
         <div className="panelTitle">Templates (click to copy)</div>
-        <div className="list">
-          {templates.map((t) => (
-            <div key={t.title} className="listItemStatic">
-              <div className="row" style={{ justifyContent: "space-between", gap: 12 }}>
-                <div className="mono">{t.title}</div>
-                <button className="btn btnSmall" onClick={() => copy(t.text)}>
-                  Copy
-                </button>
-              </div>
-              <div className="mono muted" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
-                {t.text}
-              </div>
+        {groups.map((g) => (
+          <div key={g.title} style={{ marginTop: 10 }}>
+            <div className="mono muted">{g.title}</div>
+            <div className="list" style={{ marginTop: 8 }}>
+              {g.templates.map((t) => (
+                <div key={`${g.title}:${t.title}`} className="listItemStatic">
+                  <div className="row" style={{ justifyContent: "space-between", gap: 12 }}>
+                    <div className="mono">{t.title}</div>
+                    <button className="btn btnSmall" onClick={() => copy(t.text)}>
+                      Copy
+                    </button>
+                  </div>
+                  <div className="mono muted" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
+                    {t.text}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {toastApi.toast && (

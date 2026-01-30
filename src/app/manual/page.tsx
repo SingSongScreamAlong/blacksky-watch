@@ -3,22 +3,65 @@ export const runtime = "nodejs";
 import ManualClient from "./ui/ManualClient";
 
 export default function ManualPage() {
-  const templates = [
+  const groups = [
     {
-      title: "SALUTE (skeleton)",
-      text: "SALUTE\nS: (size)\nA: (activity)\nL: (location)\nU: (unit/ID)\nT: (time)\nE: (equipment)",
+      title: "Task phrasebook (assignment text)",
+      templates: [
+        {
+          title: "Confirm / deny",
+          text: "Move to vantage. Confirm/deny contact. Report movement/count/direction.",
+        },
+        {
+          title: "Observe & report",
+          text: "Observe 3–5 minutes. Report movement/count/direction. Include exact location + time.",
+        },
+        {
+          title: "Negative sweep (NOJOY)",
+          text: "Conduct negative sweep. If NOJOY, report line-of-sight and coverage area.",
+        },
+        {
+          title: "ID / checkpoint",
+          text: "Verify IDs/checkpoint. Report any irregularities or deviations.",
+        },
+      ],
     },
     {
-      title: "Minimal report",
-      text: "L=..., T=..., OBS=..., MOV=..., CNT=...",
+      title: "Report templates (freeform)",
+      templates: [
+        {
+          title: "SALUTE (skeleton)",
+          text: "SALUTE\nS: (size)\nA: (activity)\nL: (location)\nU: (unit/ID)\nT: (time)\nE: (equipment)",
+        },
+        {
+          title: "Minimal report",
+          text: "L=..., T=..., OBS=..., MOV=..., CNT=...",
+        },
+        {
+          title: "Negative confirmation (NOJOY)",
+          text: "NOJOY at L=... (T=...). Clear line of sight; no movement observed.",
+        },
+      ],
     },
     {
-      title: "Negative confirmation (NOJOY)",
-      text: "NOJOY at L=... (T=...). Clear line of sight; no movement observed.",
-    },
-    {
-      title: "Default task text (confirm/deny)",
-      text: "Move to vantage. Confirm/deny contact. Report movement/count/direction.",
+      title: "Terminal-ready (paste into outpost terminal)",
+      templates: [
+        {
+          title: "/report (minimal)",
+          text: "/report <taskId> L=..., T=..., OBS=..., MOV=..., CNT=...",
+        },
+        {
+          title: "/report (NOJOY)",
+          text: "/report <taskId> NOJOY at L=... (T=...). Clear line of sight; no movement observed.",
+        },
+        {
+          title: "/report (SALUTE)",
+          text: "/report <taskId> SALUTE S:(...) A:(...) L:(...) U:(...) T:(...) E:(...)",
+        },
+        {
+          title: "/ack + /complete",
+          text: "/ack <taskId>\n/complete <taskId>",
+        },
+      ],
     },
   ];
 
@@ -32,11 +75,11 @@ export default function ManualPage() {
           </div>
           <div className="chips">
             <span className="chip mono">DOC</span>
-            <span className="chip mono">v0.4</span>
+            <span className="chip mono">v0.5</span>
           </div>
         </div>
 
-        <ManualClient templates={templates} />
+        <ManualClient groups={groups} />
 
         <div style={{ marginTop: 14 }}>
           <div className="panelTitle">Table of Contents</div>
