@@ -11,7 +11,7 @@ export default function ManualPage() {
           </div>
           <div className="chips">
             <span className="chip mono">DOC</span>
-            <span className="chip mono">v0.2</span>
+            <span className="chip mono">v0.3</span>
           </div>
         </div>
 
@@ -31,6 +31,12 @@ export default function ManualPage() {
             - SOG-04 Phantom / Uncertainty Handling
             <br />
             - SOG-05 Comms Posture
+            <br />
+            - Playbooks
+            <br />
+            - Report Templates
+            <br />
+            - Emergency Procedures
             <br />
             - If You See This → Do This
             <br />
@@ -160,6 +166,143 @@ export default function ManualPage() {
             GUIDED: reduce noise; push short tasks and require structured reports.
             <br />
             CONTROLLED: strict; use during high-severity or deception-heavy phases.
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className="panelTitle">Playbooks (procedures by situation)</div>
+          <div className="list">
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev sev-4">P1</div>
+                <div className="mono">High Severity Unknown (S4/S3, low confidence)</div>
+              </div>
+              <div className="mono">
+                1) ACK
+                <br />
+                2) ASSIGN: &quot;Move to vantage. Confirm/deny contact.&quot;
+                <br />
+                3) XCHECK
+                <br />
+                4) Posture: GUIDED if comms grows noisy
+                <br />
+                5) Demand REPORT in structured format (see templates)
+              </div>
+            </div>
+
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev sev-3">P2</div>
+                <div className="mono">Suspected Phantom / Deception</div>
+              </div>
+              <div className="mono">
+                1) XCHECK (early)
+                <br />
+                2) ASSIGN: &quot;No-joy / negative confirmation&quot; task
+                <br />
+                3) Avoid over-committing assets until CONFIRM
+                <br />
+                4) If XCHECK DENY and suspicion rises, treat as deception and tighten posture
+              </div>
+            </div>
+
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev sev-2">P3</div>
+                <div className="mono">Routine Observe &amp; Report (S2/S1)</div>
+              </div>
+              <div className="mono">
+                1) ACK
+                <br />
+                2) ASSIGN: &quot;Observe 3–5 minutes. Report movement/count/direction.&quot;
+                <br />
+                3) Skip XCHECK unless the report changes your decision
+                <br />
+                4) Close tasks quickly to maintain cadence
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className="panelTitle">Report Templates (copy/paste)</div>
+          <div className="mono">
+            SALUTE:
+            <br />
+            S: (size)
+            <br />
+            A: (activity)
+            <br />
+            L: (location)
+            <br />
+            U: (unit/ID)
+            <br />
+            T: (time)
+            <br />
+            E: (equipment)
+            <br />
+            <br />
+            Minimal report:
+            <br />
+            &quot;L=..., T=..., OBS=..., MOV=..., CNT=...&quot;
+            <br />
+            <br />
+            Negative confirmation:
+            <br />
+            &quot;NOJOY at L=... (T=...). Clear line of sight; no movement observed.&quot;
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className="panelTitle">Emergency Procedures</div>
+          <div className="list">
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev">EP</div>
+                <div className="mono">LOSS OF COMMS / WS OFFLINE</div>
+              </div>
+              <div className="mono">
+                1) Verify OPS shows LAST advancing.
+                <br />
+                2) If WS OFFLINE: reload page.
+                <br />
+                3) If still offline: restart local dev server.
+                <br />
+                4) Continue decision-making from last known state; avoid spamming actions.
+              </div>
+            </div>
+
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev">EP</div>
+                <div className="mono">MULTIPLE SIMULTANEOUS INCIDENTS</div>
+              </div>
+              <div className="mono">
+                1) ACK all new incidents first (prevents drops).
+                <br />
+                2) Triage by severity + uncertainty (S4/S3 + low confidence first).
+                <br />
+                3) Assign one clear action per outpost; avoid stacking tasks on one outpost.
+                <br />
+                4) Use XCHECK only on the incidents that change your resource allocation.
+              </div>
+            </div>
+
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev">EP</div>
+                <div className="mono">DECEPTION SURGE / SPOOFING FEELS HIGH</div>
+              </div>
+              <div className="mono">
+                1) Posture: CONTROLLED.
+                <br />
+                2) Require structured reports (SALUTE / negative confirmation).
+                <br />
+                3) XCHECK early on high-impact incidents.
+                <br />
+                4) Prefer deny/nojoy tasks over broad observation.
+              </div>
+            </div>
           </div>
         </div>
 
