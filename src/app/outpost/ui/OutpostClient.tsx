@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { connectWs, type WsEnvelope } from "@/lib/wsClient";
+import HelpOverlay, { useFirstRunHelp } from "@/lib/helpOverlay";
 
 type IncidentArc = "EAST" | "WEST" | "NORTH" | "SOUTH" | "EXTERNAL";
 
@@ -44,6 +45,8 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
   const [boot, setBoot] = useState<Bootstrap | null>(null);
   const [line, setLine] = useState<string>("");
   const [terminal, setTerminal] = useState<string[]>([]);
+
+  const help = useFirstRunHelp("blacksky_help_outpost_v1");
 
   const wsRef = useRef<ReturnType<typeof connectWs> | null>(null);
 
@@ -157,12 +160,43 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
 
   return (
     <div className="page">
+      <HelpOverlay
+        storageKey="blacksky_help_outpost_v1"
+        title="What is an Outpost?"
+        isOpen={help.open}
+        onClose={help.dismiss}
+        body={
+          <div>
+            <div className="panelTitle">Your role</div>
+            <div>
+              This is a single outpost’s console. You can send radio lines and execute simple commands. In the next phase,
+              this page will receive assigned tasks from RCO.
+            </div>
+
+            <div className="panelSubTitle">Try this</div>
+            <div className="mono">
+              Type a line and hit Enter to transmit.
+              <br />
+              /xcheck &lt;incidentId&gt;
+              <br />
+              /resolve &lt;incidentId&gt;
+              <br />
+              /staff off
+            </div>
+          </div>
+        }
+      />
+
       <div className="topbar">
         <div className="h1">OUTPOST · {outpostCode}</div>
         <div className="chips">
           <span className={`chip chip-${boot.region.posture.toLowerCase()}`}>POSTURE: {boot.region.posture}</span>
           <span className="chip">STAFF: {boot.region.whoStaffed[outpostCode] ? "ON" : "OFF"}</span>
         </div>
+        <div className="spacer" />
+        <button className="btn" onClick={() => help.setOpen(true)}>
+          HELP
+        </button>
       </div>
 
       <div className="grid2">

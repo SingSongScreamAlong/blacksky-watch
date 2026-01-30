@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { connectWs, type WsEnvelope } from "@/lib/wsClient";
+import HelpOverlay, { useFirstRunHelp } from "@/lib/helpOverlay";
 
 type IncidentArc = "EAST" | "WEST" | "NORTH" | "SOUTH" | "EXTERNAL";
 
@@ -97,6 +98,8 @@ export default function RcoClient({ regionId }: { regionId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [taskText, setTaskText] = useState<string>("");
   const [now, setNow] = useState<number>(() => nowMs());
+
+  const help = useFirstRunHelp("blacksky_help_rco_v1");
 
   const wsRef = useRef<ReturnType<typeof connectWs> | null>(null);
 
@@ -332,6 +335,48 @@ export default function RcoClient({ regionId }: { regionId: string }) {
 
   return (
     <div className="page">
+      <HelpOverlay
+        storageKey="blacksky_help_rco_v1"
+        title="What is RCO?"
+        isOpen={help.open}
+        onClose={help.dismiss}
+        body={
+          <div className="overlayContent">
+            <div className="panelTitle">Your role</div>
+            <div>
+              You’re the race-control / radio-control operator for a region. Incidents appear with uncertainty. Your job is
+              to acknowledge them, verify them, and task outposts.
+            </div>
+
+            <div className="panelSubTitle">Basic loop</div>
+            <div className="mono">
+              1) Select incident (J/K)
+              <br />
+              2) Enter = ACK
+              <br />
+              3) Enter again = Assign (sends tasking)
+              <br />
+              4) X = XCHECK (pushes confidence up/down)
+              <br />
+              5) Watch comms + map to decide if it’s real or a phantom
+            </div>
+
+            <div className="panelSubTitle">Hotkeys</div>
+            <div className="mono">
+              J/K: next/previous incident
+              <br />
+              Enter: ACK / Assign
+              <br />
+              X: request XCHECK
+              <br />
+              1–5: send task templates
+              <br />
+              Shift+1–3: posture presets (OPEN/GUIDED/CONTROLLED)
+            </div>
+          </div>
+        }
+      />
+
       <div className="topbar">
         <div className="h1">RCO · {boot.region.regionId}</div>
         <div className="chips">
@@ -339,6 +384,10 @@ export default function RcoClient({ regionId }: { regionId: string }) {
           <span className="chip">INC: {sortedIncidents.filter((i) => !i.resolvedAt).length}</span>
           <span className="chip">COMMS: {boot.comms.length}</span>
         </div>
+        <div className="spacer" />
+        <button className="btn" onClick={() => help.setOpen(true)}>
+          HELP
+        </button>
         {process.env.NODE_ENV === "development" ? (
           <div className="row gap">
             <button className="btn" onClick={() => director("phantom")}>DEV: phantom</button>
