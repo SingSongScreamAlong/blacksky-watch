@@ -26,6 +26,9 @@ export default function Home() {
           <Link className="btn" href="/ops?regionId=glasslands-01">
             OPS (recommended)
           </Link>
+          <Link className="btn" href="/manual">
+            RCO Manual
+          </Link>
           <Link className="btn" href="/rco?regionId=glasslands-01">
             RCO
           </Link>

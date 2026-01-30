@@ -175,6 +175,10 @@ export default function OpsClient({ regionId }: { regionId: string }) {
 
         <div className="spacer" />
 
+        <a className="btn btnSmall" href="/manual" target="_blank" rel="noreferrer">
+          Manual
+        </a>
+
         <a className="btn btnSmall" href={popRco} target="_blank" rel="noreferrer">
           Pop RCO
         </a>
