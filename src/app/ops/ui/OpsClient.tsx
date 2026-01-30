@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RcoClient from "@/app/rco/ui/RcoClient";
 import OutpostClient from "@/app/outpost/ui/OutpostClient";
+import { connectWs, type WsEnvelope } from "@/lib/wsClient";
 
 type OpsTab = "RCO" | "OUTPOST_A" | "OUTPOST_B";
 
@@ -41,6 +42,53 @@ export default function OpsClient({ regionId }: { regionId: string }) {
 
   const outpostOptions = useMemo(() => ["401", "860"], []);
 
+  const [unreadA, setUnreadA] = useState<boolean>(false);
+  const [unreadB, setUnreadB] = useState<boolean>(false);
+
+  const wsRef = useRef<ReturnType<typeof connectWs> | null>(null);
+
+  const applyEnvelope = useCallback(
+    (env: WsEnvelope) => {
+      // Unread should reflect activity for the *current* A/B assignments.
+      if (env.type === "task/open") {
+        const payload = env.payload as { outpostCode?: string };
+        const oc = typeof payload?.outpostCode === "string" ? payload.outpostCode : "";
+
+        if (oc && oc === outpostA && tab !== "OUTPOST_A") setUnreadA(true);
+        if (oc && oc === outpostB && tab !== "OUTPOST_B") setUnreadB(true);
+      }
+
+      if (env.type === "comms/message") {
+        const payload = env.payload as { from?: string; text?: string };
+        const from = typeof payload?.from === "string" ? payload.from : "";
+        const text = typeof payload?.text === "string" ? payload.text : "";
+
+        if (from === outpostA && tab !== "OUTPOST_A") setUnreadA(true);
+        if (from === outpostB && tab !== "OUTPOST_B") setUnreadB(true);
+
+        // Also treat OPS tasking lines as relevant to the outpost.
+        if (from === "OPS") {
+          if (text.includes(`Tasking ${outpostA}`) && tab !== "OUTPOST_A") setUnreadA(true);
+          if (text.includes(`Tasking ${outpostB}`) && tab !== "OUTPOST_B") setUnreadB(true);
+        }
+      }
+    },
+    [outpostA, outpostB, tab]
+  );
+
+  useEffect(() => {
+    wsRef.current?.close();
+    wsRef.current = connectWs({
+      rooms: [`region:${regionId}`, `comms:${regionId}`, `session:${regionId}`],
+      onEnvelope: applyEnvelope,
+    });
+
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [applyEnvelope, regionId]);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -75,7 +123,14 @@ export default function OpsClient({ regionId }: { regionId: string }) {
         <div className="h1">OPS · {regionId}</div>
         <div className="chips">
           <span className="chip mono">OUTPOST A</span>
-          <select className="select" value={outpostA} onChange={(e) => setOutpostA(e.target.value)}>
+          <select
+            className="select"
+            value={outpostA}
+            onChange={(e) => {
+              setOutpostA(e.target.value);
+              setUnreadA(false);
+            }}
+          >
             {outpostOptions.map((o) => (
               <option key={o} value={o}>
                 {o}
@@ -84,7 +139,14 @@ export default function OpsClient({ regionId }: { regionId: string }) {
           </select>
 
           <span className="chip mono">OUTPOST B</span>
-          <select className="select" value={outpostB} onChange={(e) => setOutpostB(e.target.value)}>
+          <select
+            className="select"
+            value={outpostB}
+            onChange={(e) => {
+              setOutpostB(e.target.value);
+              setUnreadB(false);
+            }}
+          >
             {outpostOptions.map((o) => (
               <option key={o} value={o}>
                 {o}
@@ -107,14 +169,33 @@ export default function OpsClient({ regionId }: { regionId: string }) {
       </div>
 
       <div className="opsTabs">
-        <button className={`opsTab ${tab === "RCO" ? "active" : ""}`} onClick={() => setTab("RCO")}>
+        <button
+          className={`opsTab ${tab === "RCO" ? "active" : ""}`}
+          onClick={() => {
+            setTab("RCO");
+          }}
+        >
           RCO
         </button>
-        <button className={`opsTab ${tab === "OUTPOST_A" ? "active" : ""}`} onClick={() => setTab("OUTPOST_A")}>
+        <button
+          className={`opsTab ${tab === "OUTPOST_A" ? "active" : ""}`}
+          onClick={() => {
+            setTab("OUTPOST_A");
+            setUnreadA(false);
+          }}
+        >
           Outpost A · {outpostA}
+          {unreadA && tab !== "OUTPOST_A" ? <span className="opsUnread" /> : null}
         </button>
-        <button className={`opsTab ${tab === "OUTPOST_B" ? "active" : ""}`} onClick={() => setTab("OUTPOST_B")}>
+        <button
+          className={`opsTab ${tab === "OUTPOST_B" ? "active" : ""}`}
+          onClick={() => {
+            setTab("OUTPOST_B");
+            setUnreadB(false);
+          }}
+        >
           Outpost B · {outpostB}
+          {unreadB && tab !== "OUTPOST_B" ? <span className="opsUnread" /> : null}
         </button>
         <div className="spacer" />
         <div className="muted mono small">{activeTitle}</div>

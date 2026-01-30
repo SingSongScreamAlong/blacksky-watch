@@ -577,6 +577,7 @@ a {
   border-radius: 10px;
   padding: 7px 10px;
   font-size: 12px;
+  position: relative;
 }
 
 .opsTab.active {
@@ -586,6 +587,16 @@ a {
 
 .opsTabBody {
   display: block;
+}
+
+.opsUnread {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-left: 8px;
+  background: rgba(255, 204, 102, 0.95);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
 }
 
 .opsGrid1 {
