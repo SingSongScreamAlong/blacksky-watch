@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { connectWs, type WsEnvelope } from "@/lib/wsClient";
+import { connectWs, type WsEnvelope, type WsStatus } from "@/lib/wsClient";
 import HelpOverlay, { useFirstRunHelp } from "@/lib/helpOverlay";
 import { useToast } from "@/lib/useToast";
 
@@ -63,6 +63,7 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [wsStatus, setWsStatus] = useState<WsStatus>("connecting");
 
   const help = useFirstRunHelp("blacksky_help_outpost_v1");
 
@@ -141,6 +142,7 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
     wsRef.current = connectWs({
       rooms: [`region:${regionId}`, `comms:${regionId}`, `session:${regionId}`],
       onEnvelope: applyEnvelope,
+      onStatus: setWsStatus,
     });
 
     return () => {
@@ -266,6 +268,9 @@ export default function OutpostClient({ regionId, outpostCode }: { regionId: str
       <div className="topbar">
         <div className="h1">OUTPOST · {outpostCode}</div>
         <div className="chips">
+          <span className={`chip ${wsStatus === "live" ? "chip-live" : wsStatus === "offline" ? "chip-offline" : "chip-reconnecting"}`}>
+            {wsStatus === "live" ? "LIVE" : wsStatus === "offline" ? "OFFLINE" : "RECONNECTING"}
+          </span>
           <span className={`chip chip-${boot.region.posture.toLowerCase()}`}>POSTURE: {boot.region.posture}</span>
           <span className="chip">STAFF: {boot.region.whoStaffed[outpostCode] ? "ON" : "OFF"}</span>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { connectWs, type WsEnvelope } from "@/lib/wsClient";
+import { connectWs, type WsEnvelope, type WsStatus } from "@/lib/wsClient";
 import HelpOverlay, { useFirstRunHelp } from "@/lib/helpOverlay";
 import { useToast } from "@/lib/useToast";
 
@@ -118,6 +118,7 @@ export default function RcoClient({ regionId }: { regionId: string }) {
   const showToast = toastApi.show;
 
   const [busy, setBusy] = useState<string | null>(null);
+  const [wsStatus, setWsStatus] = useState<WsStatus>("connecting");
 
   const wsRef = useRef<ReturnType<typeof connectWs> | null>(null);
 
@@ -224,6 +225,7 @@ export default function RcoClient({ regionId }: { regionId: string }) {
     wsRef.current = connectWs({
       rooms: [`region:${regionId}`, `comms:${regionId}`, `session:${regionId}`],
       onEnvelope: applyEnvelope,
+      onStatus: setWsStatus,
     });
 
     return () => {
@@ -460,6 +462,9 @@ export default function RcoClient({ regionId }: { regionId: string }) {
       <div className="topbar">
         <div className="h1">RCO · {boot.region.regionId}</div>
         <div className="chips">
+          <span className={`chip ${wsStatus === "live" ? "chip-live" : wsStatus === "offline" ? "chip-offline" : "chip-reconnecting"}`}>
+            {wsStatus === "live" ? "LIVE" : wsStatus === "offline" ? "OFFLINE" : "RECONNECTING"}
+          </span>
           <span className={`chip chip-${boot.region.posture.toLowerCase()}`}>POSTURE: {boot.region.posture}</span>
           <span className="chip">INC: {sortedIncidents.filter((i) => !i.resolvedAt).length}</span>
           <span className="chip">COMMS: {boot.comms.length}</span>
