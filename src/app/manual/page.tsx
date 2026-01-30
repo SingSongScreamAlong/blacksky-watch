@@ -11,7 +11,34 @@ export default function ManualPage() {
           </div>
           <div className="chips">
             <span className="chip mono">DOC</span>
-            <span className="chip mono">v0.1</span>
+            <span className="chip mono">v0.2</span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <div className="panelTitle">Table of Contents</div>
+          <div className="mono">
+            - Quick Start
+            <br />
+            - Normal Ops Flow
+            <br />
+            - SOG-01 Initial Contact
+            <br />
+            - SOG-02 Tasking
+            <br />
+            - SOG-03 Outpost Responses
+            <br />
+            - SOG-04 Phantom / Uncertainty Handling
+            <br />
+            - SOG-05 Comms Posture
+            <br />
+            - If You See This → Do This
+            <br />
+            - Checklists
+            <br />
+            - Troubleshooting
+            <br />
+            - Reference (Hotkeys)
           </div>
         </div>
 
@@ -27,6 +54,21 @@ export default function ManualPage() {
             4) Outpost: ACK, then REPORT, then COMPLETE
             <br />
             5) X = XCHECK when uncertainty matters
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className="panelTitle">Normal Ops Flow (the loop)</div>
+          <div className="mono">
+            1) Detect: new incident appears
+            <br />
+            2) Acknowledge: ACK
+            <br />
+            3) Task: ASSIGN to an outpost (creates a task)
+            <br />
+            4) Verify: XCHECK if impact is high or details are unclear
+            <br />
+            5) Close: outpost REPORT + COMPLETE
           </div>
         </div>
 
@@ -82,6 +124,42 @@ export default function ManualPage() {
             - REPORT changes the incident verification (confidence/suspicion).
             <br />
             - COMPLETE closes the task loop.
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className="panelTitle">SOG-04: Phantom / Uncertainty Handling</div>
+          <div className="kv">
+            <div className="k">Objective</div>
+            <div className="v">Converge on CONFIRM or DENY. Avoid thrashing.</div>
+            <div className="k">Trigger</div>
+            <div className="v">Confidence is low, suspicion climbs, or reports conflict.</div>
+          </div>
+          <div className="mono" style={{ marginTop: 10 }}>
+            A) XCHECK when uncertainty drives decisions.
+            <br />
+            B) Task for disproof: &quot;confirm/deny&quot;, &quot;no-joy&quot;, &quot;visual ID&quot;.
+            <br />
+            C) Prefer negative confirmation tasks over vague observation.
+            <br />
+            D) If confidence rises and suspicion drops, de-escalate posture and stop over-tasking.
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className="panelTitle">SOG-05: Comms Posture</div>
+          <div className="kv">
+            <div className="k">Objective</div>
+            <div className="v">Balance speed vs noise. Control the channel before it controls you.</div>
+            <div className="k">Trigger</div>
+            <div className="v">Comms volume spikes, spoofing feels likely, or coordination is breaking down.</div>
+          </div>
+          <div className="mono" style={{ marginTop: 10 }}>
+            OPEN: maximum throughput; use when you need wide reporting.
+            <br />
+            GUIDED: reduce noise; push short tasks and require structured reports.
+            <br />
+            CONTROLLED: strict; use during high-severity or deception-heavy phases.
           </div>
         </div>
 
@@ -183,6 +261,63 @@ export default function ManualPage() {
                 - Expect CONFIRM/DENY/NOJOY.
                 <br />
                 - Update decision: continue tasking or resolve.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className="panelTitle">Troubleshooting (If you see this → do this)</div>
+          <div className="list">
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev">WS</div>
+                <div className="mono">OPS header shows OFFLINE or RECONNECTING</div>
+              </div>
+              <div className="mono muted">Action</div>
+              <div className="mono">
+                Wait 5–10 seconds. If it persists, reload the page.
+                <br />
+                If local dev, confirm the Next dev server is running.
+              </div>
+            </div>
+
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev">TASK</div>
+                <div className="mono">RCO assigned, but outpost shows no tasks</div>
+              </div>
+              <div className="mono muted">Action</div>
+              <div className="mono">
+                Confirm outpost code matches the task outpost.
+                <br />
+                Reload outpost view. Then re-ASSIGN with short task text.
+              </div>
+            </div>
+
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev">COMMS</div>
+                <div className="mono">No comms coming back after tasking</div>
+              </div>
+              <div className="mono muted">Action</div>
+              <div className="mono">
+                Outpost must ACK the task, then REPORT.
+                <br />
+                Use outpost task buttons to prefill commands.
+              </div>
+            </div>
+
+            <div className="listItemStatic">
+              <div className="row">
+                <div className="sev">SIM</div>
+                <div className="mono">Everything feels static / dead</div>
+              </div>
+              <div className="mono muted">Action</div>
+              <div className="mono">
+                Use OPS &quot;LAST: Ns&quot; to confirm events are flowing.
+                <br />
+                If LAST keeps increasing, refresh the page or restart the dev server.
               </div>
             </div>
           </div>
