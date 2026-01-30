@@ -75,7 +75,7 @@ export default function ManualPage() {
           </div>
           <div className="chips">
             <span className="chip mono">DOC</span>
-            <span className="chip mono">v0.5</span>
+            <span className="chip mono">v0.6</span>
           </div>
         </div>
 
@@ -87,6 +87,8 @@ export default function ManualPage() {
             - Quick Start
             <br />
             - Normal Ops Flow
+            <br />
+            - Task Generator
             <br />
             - SOG-01 Initial Contact
             <br />

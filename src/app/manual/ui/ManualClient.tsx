@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useToast } from "@/lib/useToast";
 
 type Template = {
@@ -16,6 +16,9 @@ type TemplateGroup = {
 export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
   const toastApi = useToast(1800);
   const showToast = toastApi.show;
+
+  const [intent, setIntent] = useState<"confirm" | "observe" | "nojoy" | "id">("confirm");
+  const [reportStyle, setReportStyle] = useState<"minimal" | "salute" | "nojoy">("minimal");
 
   const copy = useCallback(
     async (t: string) => {
@@ -42,6 +45,31 @@ export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
     [showToast]
   );
 
+  const generated = useMemo(() => {
+    let taskText = "";
+    if (intent === "confirm") {
+      taskText = "Move to vantage. Confirm/deny contact. Report movement/count/direction.";
+    } else if (intent === "observe") {
+      taskText = "Observe 3–5 minutes. Report movement/count/direction. Include exact location + time.";
+    } else if (intent === "nojoy") {
+      taskText = "Conduct negative sweep. If NOJOY, report line-of-sight and coverage area.";
+    } else {
+      taskText = "Verify IDs/checkpoint. Report any irregularities or deviations.";
+    }
+
+    let reportText = "";
+    if (reportStyle === "salute") {
+      reportText = "SALUTE\nS: (size)\nA: (activity)\nL: (location)\nU: (unit/ID)\nT: (time)\nE: (equipment)";
+    } else if (reportStyle === "nojoy") {
+      reportText = "NOJOY at L=... (T=...). Clear line of sight; no movement observed.";
+    } else {
+      reportText = "L=..., T=..., OBS=..., MOV=..., CNT=...";
+    }
+
+    const reportCmd = `/report <taskId> ${reportText.replace(/\n/g, " ")}`;
+    return { taskText, reportText, reportCmd };
+  }, [intent, reportStyle]);
+
   return (
     <div style={{ marginTop: 16 }}>
       <div className="panelTitle">Quick Reference Card</div>
@@ -64,6 +92,61 @@ export default function ManualClient({ groups }: { groups: TemplateGroup[] }) {
             GUIDED: reduce noise
             <br />
             CONTROLLED: deception / high severity
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <div className="panelTitle">Task Generator</div>
+        <div className="row gap" style={{ flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+          <div className="mono muted">Intent</div>
+          <select className="select" value={intent} onChange={(e) => setIntent(e.target.value as typeof intent)}>
+            <option value="confirm">Confirm / deny</option>
+            <option value="observe">Observe &amp; report</option>
+            <option value="nojoy">Negative sweep (NOJOY)</option>
+            <option value="id">ID / checkpoint</option>
+          </select>
+
+          <div className="mono muted" style={{ marginLeft: 8 }}>
+            Report
+          </div>
+          <select
+            className="select"
+            value={reportStyle}
+            onChange={(e) => setReportStyle(e.target.value as typeof reportStyle)}
+          >
+            <option value="minimal">Minimal</option>
+            <option value="salute">SALUTE</option>
+            <option value="nojoy">NOJOY</option>
+          </select>
+        </div>
+
+        <div className="grid2" style={{ marginTop: 10 }}>
+          <div className="panel">
+            <div className="panelTitle">Recommended task text</div>
+            <div className="mono muted" style={{ whiteSpace: "pre-wrap" }}>
+              {generated.taskText}
+            </div>
+            <div className="row gap" style={{ marginTop: 10 }}>
+              <button className="btn btnSmall" onClick={() => copy(generated.taskText)}>
+                Copy task text
+              </button>
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panelTitle">Matching report template</div>
+            <div className="mono muted" style={{ whiteSpace: "pre-wrap" }}>
+              {generated.reportText}
+            </div>
+            <div className="row gap" style={{ marginTop: 10, flexWrap: "wrap" }}>
+              <button className="btn btnSmall" onClick={() => copy(generated.reportText)}>
+                Copy report text
+              </button>
+              <button className="btn btnSmall" onClick={() => copy(generated.reportCmd)}>
+                Copy /report
+              </button>
+            </div>
           </div>
         </div>
       </div>
