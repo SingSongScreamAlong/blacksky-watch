@@ -1,6 +1,27 @@
 export const runtime = "nodejs";
 
+import ManualClient from "./ui/ManualClient";
+
 export default function ManualPage() {
+  const templates = [
+    {
+      title: "SALUTE (skeleton)",
+      text: "SALUTE\nS: (size)\nA: (activity)\nL: (location)\nU: (unit/ID)\nT: (time)\nE: (equipment)",
+    },
+    {
+      title: "Minimal report",
+      text: "L=..., T=..., OBS=..., MOV=..., CNT=...",
+    },
+    {
+      title: "Negative confirmation (NOJOY)",
+      text: "NOJOY at L=... (T=...). Clear line of sight; no movement observed.",
+    },
+    {
+      title: "Default task text (confirm/deny)",
+      text: "Move to vantage. Confirm/deny contact. Report movement/count/direction.",
+    },
+  ];
+
   return (
     <div className="page">
       <div className="panel">
@@ -11,9 +32,11 @@ export default function ManualPage() {
           </div>
           <div className="chips">
             <span className="chip mono">DOC</span>
-            <span className="chip mono">v0.3</span>
+            <span className="chip mono">v0.4</span>
           </div>
         </div>
+
+        <ManualClient templates={templates} />
 
         <div style={{ marginTop: 14 }}>
           <div className="panelTitle">Table of Contents</div>
