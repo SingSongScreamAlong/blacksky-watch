@@ -108,7 +108,7 @@ export default function ManualPage() {
               </div>
               <div className="mono muted">Action</div>
               <div className="mono">
-                Request XCHECK. Task for negative confirmation ("confirm/deny").
+                Request XCHECK. Task for negative confirmation (&quot;confirm/deny&quot;).
                 <br />
                 Prefer REPORTs that include: location, time, movement, count.
               </div>
