@@ -533,6 +533,57 @@ a {
   font-size: 11px;
 }
 
+.btnActive {
+  border-color: rgba(88, 166, 255, 0.45);
+  background: rgba(88, 166, 255, 0.12);
+}
+
+.select {
+  border: 1px solid var(--line);
+  background: rgba(7, 10, 13, 0.35);
+  color: var(--fg0);
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  outline: none;
+}
+
+.select:focus {
+  border-color: rgba(88, 166, 255, 0.35);
+}
+
+.opsPane {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.opsGrid1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.opsGrid2 {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 12px;
+}
+
+.opsGrid3 {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 0.8fr;
+  gap: 12px;
+}
+
+@media (max-width: 1200px) {
+  .opsGrid2,
+  .opsGrid3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 .chip-live {
   border-color: rgba(92, 255, 154, 0.3);
   color: rgba(166, 255, 202, 0.92);
