@@ -1,17 +1,56 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import RcoClient from "@/app/rco/ui/RcoClient";
 import OutpostClient from "@/app/outpost/ui/OutpostClient";
 
 type OpsTab = "RCO" | "OUTPOST_A" | "OUTPOST_B";
 
+const OPS_PREFS_KEY = "blacksky_ops_prefs_v1";
+
+function readPrefs(): { tab?: OpsTab; outpostA?: string; outpostB?: string } {
+  try {
+    const raw = window.localStorage.getItem(OPS_PREFS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+    const obj = parsed as Record<string, unknown>;
+    const tab = typeof obj.tab === "string" ? obj.tab : undefined;
+    const outpostA = typeof obj.outpostA === "string" ? obj.outpostA : undefined;
+    const outpostB = typeof obj.outpostB === "string" ? obj.outpostB : undefined;
+    if (tab !== "RCO" && tab !== "OUTPOST_A" && tab !== "OUTPOST_B") return { outpostA, outpostB };
+    return { tab, outpostA, outpostB };
+  } catch {
+    return {};
+  }
+}
+
 export default function OpsClient({ regionId }: { regionId: string }) {
-  const [tab, setTab] = useState<OpsTab>("RCO");
-  const [outpostA, setOutpostA] = useState<string>("860");
-  const [outpostB, setOutpostB] = useState<string>("401");
+  const [tab, setTab] = useState<OpsTab>(() => {
+    if (typeof window === "undefined") return "RCO";
+    return readPrefs().tab ?? "RCO";
+  });
+  const [outpostA, setOutpostA] = useState<string>(() => {
+    if (typeof window === "undefined") return "860";
+    return readPrefs().outpostA ?? "860";
+  });
+  const [outpostB, setOutpostB] = useState<string>(() => {
+    if (typeof window === "undefined") return "401";
+    return readPrefs().outpostB ?? "401";
+  });
 
   const outpostOptions = useMemo(() => ["401", "860"], []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        OPS_PREFS_KEY,
+        JSON.stringify({ tab, outpostA, outpostB })
+      );
+    } catch {
+      // ignore
+    }
+  }, [outpostA, outpostB, tab]);
 
   if (!regionId) {
     return (
