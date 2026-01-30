@@ -1,66 +1,55 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="page">
+      <div className="panel">
+        <div className="row" style={{ justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <div className="h1">blacksky-watch</div>
+            <div className="muted small">Real-time ops/radio-control prototype</div>
+          </div>
+          <div className="chips">
+            <span className="chip mono">REGION</span>
+            <span className="chip mono">glasslands-01</span>
+          </div>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div style={{ marginTop: 12 }}>
+          <div className="panelTitle">Start here</div>
+          <div className="muted">
+            Open the OPS dashboard (single-window) or the dedicated RCO/Outpost pages.
+          </div>
         </div>
-      </main>
+
+        <div className="row gap" style={{ marginTop: 12, flexWrap: "wrap" }}>
+          <Link className="btn" href="/ops?regionId=glasslands-01">
+            OPS (recommended)
+          </Link>
+          <Link className="btn" href="/rco?regionId=glasslands-01">
+            RCO
+          </Link>
+          <Link className="btn" href="/outpost?regionId=glasslands-01&outpostCode=860">
+            Outpost 860
+          </Link>
+          <Link className="btn" href="/outpost?regionId=glasslands-01&outpostCode=401">
+            Outpost 401
+          </Link>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <div className="panelSubTitle">What to do</div>
+          <div className="mono">
+            1) In RCO: select an incident (J/K)
+            <br />
+            2) Enter = ACK, then Enter again = Assign
+            <br />
+            3) In Outpost: ACK/REPORT/COMPLETE the task
+            <br />
+            4) Watch confidence + comms evolve
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
