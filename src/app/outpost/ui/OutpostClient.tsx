@@ -1,0 +1,242 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { connectWs, type WsEnvelope } from "@/lib/wsClient";
+
+type IncidentArc = "EAST" | "WEST" | "NORTH" | "SOUTH" | "EXTERNAL";
+
+type Incident = {
+  id: string;
+  arc: IncidentArc;
+  severity: 1 | 2 | 3 | 4;
+  createdAt: number;
+  resolvedAt?: number;
+  what: string;
+  where: string;
+  assignedTo?: string;
+};
+
+type Region = {
+  regionId: string;
+  posture: "OPEN" | "GUIDED" | "CONTROLLED";
+  arcMarks: Record<IncidentArc, "HOT" | "WATCH" | "CLEAR">;
+  whoStaffed: Record<string, boolean>;
+};
+
+type Comms = {
+  id: string;
+  ts: number;
+  from: string;
+  text: string;
+  spoofed?: boolean;
+  flagged?: boolean;
+};
+
+type Bootstrap = {
+  region: Region;
+  incidents: Incident[];
+  comms: Comms[];
+};
+
+type PosturePayload = { posture: Region["posture"] };
+
+export default function OutpostClient({ regionId, outpostCode }: { regionId: string; outpostCode: string }) {
+  const [boot, setBoot] = useState<Bootstrap | null>(null);
+  const [line, setLine] = useState<string>("");
+  const [terminal, setTerminal] = useState<string[]>([]);
+
+  const wsRef = useRef<ReturnType<typeof connectWs> | null>(null);
+
+  useEffect(() => {
+    if (!regionId) return;
+
+    fetch(`/api/rco/bootstrap?regionId=${encodeURIComponent(regionId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setBoot({ region: data.region, incidents: data.incidents, comms: data.comms });
+        setTerminal((prev) => [...prev, `CONNECTED region=${regionId} outpost=${outpostCode || "?"}`]);
+      })
+      .catch(() => setBoot(null));
+  }, [regionId, outpostCode]);
+
+  function applyEnvelope(env: WsEnvelope) {
+    setBoot((prev) => {
+      if (!prev) return prev;
+
+      if (env.type === "incident/open") {
+        return { ...prev, incidents: [env.payload as Incident, ...prev.incidents] };
+      }
+
+      if (env.type === "incident/update" || env.type === "incident/resolve") {
+        const inc = env.payload as Incident;
+        return { ...prev, incidents: prev.incidents.map((i) => (i.id === inc.id ? inc : i)) };
+      }
+
+      if (env.type === "comms/message") {
+        const msg = env.payload as Comms;
+        return { ...prev, comms: [...prev.comms.slice(-49), msg] };
+      }
+
+      if (env.type === "region/update") {
+        const patch = env.payload as Partial<Region>;
+        return { ...prev, region: { ...prev.region, ...patch } };
+      }
+
+      if (env.type === "comms/posture") {
+        const posture = (env.payload as PosturePayload).posture;
+        return { ...prev, region: { ...prev.region, posture } };
+      }
+
+      return prev;
+    });
+
+    if (env.type === "comms/message") {
+      const msg = env.payload as Comms;
+      setTerminal((prev) => [...prev.slice(-200), `${new Date(msg.ts).toLocaleTimeString()} [${msg.from}] ${msg.text}${msg.flagged ? " (FLAG)" : ""}`]);
+    }
+  }
+
+  useEffect(() => {
+    if (!regionId) return;
+
+    wsRef.current?.close();
+    wsRef.current = connectWs({
+      rooms: [`region:${regionId}`, `comms:${regionId}`, `session:${regionId}`],
+      onEnvelope: applyEnvelope,
+    });
+
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [regionId]);
+
+  const assigned = useMemo(() => {
+    if (!boot) return [];
+    return boot.incidents
+      .filter((i) => !i.resolvedAt)
+      .filter((i) => i.assignedTo === outpostCode)
+      .slice(0, 10);
+  }, [boot, outpostCode]);
+
+  async function submit() {
+    if (!line.trim()) return;
+
+    const toSend = line;
+    setLine("");
+    setTerminal((prev) => [...prev, `> ${toSend}`]);
+
+    await fetch(`/api/terminal/line`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ regionId, outpostCode, line: toSend }),
+    });
+  }
+
+  if (!regionId || !outpostCode) {
+    return (
+      <div className="page">
+        <div className="panel">
+          <div className="h1">OUTPOST</div>
+          <div className="muted">Missing params. Try: /outpost?regionId=glasslands-01&outpostCode=860</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!boot) {
+    return (
+      <div className="page">
+        <div className="panel">
+          <div className="h1">OUTPOST · {outpostCode}</div>
+          <div className="muted">Loading bootstrap…</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <div className="topbar">
+        <div className="h1">OUTPOST · {outpostCode}</div>
+        <div className="chips">
+          <span className={`chip chip-${boot.region.posture.toLowerCase()}`}>POSTURE: {boot.region.posture}</span>
+          <span className="chip">STAFF: {boot.region.whoStaffed[outpostCode] ? "ON" : "OFF"}</span>
+        </div>
+      </div>
+
+      <div className="grid2">
+        <section className="panel">
+          <div className="panelTitle">Terminal</div>
+          <div className="terminal">
+            {terminal.slice(-200).map((l, idx) => (
+              <div key={idx} className="terminalLine">
+                {l}
+              </div>
+            ))}
+          </div>
+
+          <div className="row gap">
+            <input
+              className="input"
+              value={line}
+              onChange={(e) => setLine(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submit();
+              }}
+              placeholder="Type… (/xcheck <incidentId>, /resolve <incidentId>, /staff off)"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+            <button className="btn" onClick={submit}>Send</button>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panelTitle">Status</div>
+          <div className="kv">
+            <div className="k">Region</div>
+            <div className="v">{boot.region.regionId}</div>
+            <div className="k">Arc</div>
+            <div className="v">N {boot.region.arcMarks.NORTH} · S {boot.region.arcMarks.SOUTH} · E {boot.region.arcMarks.EAST} · W {boot.region.arcMarks.WEST} · X {boot.region.arcMarks.EXTERNAL}</div>
+            <div className="k">Alerts</div>
+            <div className="v">Assigned open: {assigned.length}</div>
+          </div>
+
+          <div className="panelSubTitle">Assigned Incidents</div>
+          <div className="list">
+            {assigned.length ? (
+              assigned.map((i) => (
+                <div key={i.id} className="listItemStatic">
+                  <div className="row">
+                    <div className={`sev sev-${i.severity}`}>S{i.severity}</div>
+                    <div className="mono">{i.arc}</div>
+                    <div className="spacer" />
+                    <div className="muted mono">{i.id.slice(0, 8)}</div>
+                  </div>
+                  <div className="tight">{i.what}</div>
+                  <div className="muted tight">{i.where}</div>
+                </div>
+              ))
+            ) : (
+              <div className="muted">No assignments.</div>
+            )}
+          </div>
+
+          <div className="panelSubTitle">Recent Comms</div>
+          <div className="comms">
+            {boot.comms.slice(-12).map((m) => (
+              <div key={m.id} className={`commsLine ${m.spoofed ? "spoof" : ""}`}>
+                <span className="mono muted">{new Date(m.ts).toLocaleTimeString()}</span>
+                <span className="mono from">[{m.from}]</span>
+                <span className="text">{m.text}</span>
+                {m.flagged ? <span className="flag">FLAG</span> : null}
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
